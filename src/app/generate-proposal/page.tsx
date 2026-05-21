@@ -1,9 +1,9 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function GenerateProposalPage() {
+function GenerateProposalContent() {
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<'grants' | 'prospecting'>('grants');
   const [loading, setLoading] = useState(false);
@@ -317,5 +317,13 @@ export default function GenerateProposalPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function GenerateProposalPage() {
+  return (
+    <Suspense fallback={<div className="container-app py-12"><p>Loading...</p></div>}>
+      <GenerateProposalContent />
+    </Suspense>
   );
 }

@@ -66,15 +66,109 @@ model Contact {
   @@index([relationshipStage])
 }
 
-model BtsProgram {
+
+
+model ProposalTemplate {
   id          String @id @default(cuid())
-  name        String @unique
+  name        String
   description String
-  stream      String // Future of Communication, Sustainability, Health, Intelligence
-  yearLevels  String // "7-8", "9-10", "9-12", etc.
-  keywords    String // Comma-separated for matching
+  funderType  String // "government", "foundation", "corporate"
+  content     String // Template with placeholders
 
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Stream {
+  id          String @id @default(cuid())
+  name        String @unique // "Future of Communication", etc.
+  description String
+  color       String? // For UI color coding
+
+  createdAt   DateTime @default(now())
+}
+
+model DeliveryModel {
+  id          String @id @default(cuid())
+  name        String @unique // "Future of Work", "Design Sprint", "Embedded"
+  description String
+  yearLevels  String // "7-8", "9-10", "9-12"
+  duration    String // "1 hour", "Full day", "Extended"
+
+  createdAt   DateTime @default(now())
+}
+
+model Program {
+  id          String @id @default(cuid())
+  name        String // "Mic-Drop: 90-Second PodBite", etc.
+  description String
+
+  streamId    String
+  deliveryModelId String
+
+  tools       String? // Comma-separated list
+  yearLevels  String
+  capacity    Int @default(30)
+  keywords    String? // For matching to companies/grants
+
+  createdAt   DateTime @default(now())
+
+  @@index([streamId])
+  @@index([deliveryModelId])
+}
+
+model Project {
+  id          String @id @default(cuid())
+  name        String @unique // "Build & Bond", "GenIUS", etc.
+  description String
+
+  streamIds   String? // JSON array of stream IDs (can span multiple streams)
+
+  date        DateTime?
+  budget      Float?
+  studentImpact Int?
+
+  status      String @default("planning") // planning, active, completed
+  keywords    String? // For matching
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PartnershipIdea {
+  id          String @id @default(cuid())
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  ideaName    String
+  whyAligned  String
+  structure   String
+
+  streamIds   String // JSON array of stream IDs
+  programIds  String? // JSON array of program IDs
+  projectIds  String? // JSON array of project IDs
+  deliveryModelIds String? // JSON array of delivery model IDs
+
+  estimatedBudget Float?
+  studentImpactNumber Int?
+  studentImpactDescription String?
+
+  difficulty String // "Easy", "Medium", "Hard"
+  firstContactAngle String
+
+  status      String @default("draft") // draft, ready_to_pitch, pitched, active_partnership
+
+  generatedBy String @default("claude")
+  generatedAt DateTime @default(now())
+
+  pitchedAt   DateTime?
+  notes       String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([status])
 }
 
 model Company {
@@ -86,18 +180,20 @@ model Company {
   location    String
   website     String?
 
-  fundingCapacity String // Low, Medium, High
-  csrFocus    String? // Innovation, Education, Sustainability, etc.
+  fundingCapacity String // Low, Medium, High, Very High
+  csrFocus    String? // JSON or comma-separated
   notes       String?
 
-  tier        Int    @default(4) // 1: Top 50 ASX, 2: ASX 51-150, 3: ASX 151-300, 4: Regional/SME
+  tier        Int    @default(4) // 1: Top 50 ASX, 2: ASX 51-150, 3: SME, 4: Regional
   btsPrograms String? // JSON array of relevant BTS programs
 
-  contactName String? // Default contact
+  partnershipIdeas PartnershipIdea[]
+
+  contactName String?
   email       String?
   phone       String?
 
-  isReal      Boolean @default(false) // true = real prospect, false = synthetic
+  isReal      Boolean @default(false)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -105,15 +201,4 @@ model Company {
   @@index([industry])
   @@index([sector])
   @@index([tier])
-}
-
-model ProposalTemplate {
-  id          String @id @default(cuid())
-  name        String
-  description String
-  funderType  String // "government", "foundation", "corporate"
-  content     String // Template with placeholders
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }

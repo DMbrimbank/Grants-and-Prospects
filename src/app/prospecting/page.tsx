@@ -15,6 +15,19 @@ interface Company {
   fundingCapacity: string;
   tier: number;
   btsPrograms?: string;
+  size?: string;
+}
+
+interface PartnershipIdea {
+  ideaName: string;
+  whyAligned: string;
+  streams: string[];
+  programs: string[];
+  estimatedBudget: string;
+  studentImpactNumber: number;
+  studentImpactDescription: string;
+  difficulty: string;
+  firstContactAngle: string;
 }
 
 const EMAIL_TEMPLATES: Record<string, string> = {
@@ -58,6 +71,9 @@ export default function ProspectingPage() {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [sectorFilter, setSectorFilter] = useState('');
   const [tierFilter, setTierFilter] = useState<number | null>(null);
+  const [ideasLoading, setIdeasLoading] = useState(false);
+  const [ideas, setIdeas] = useState<Record<string, PartnershipIdea[]>>({});
+  const [showIdeas, setShowIdeas] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchCompanies();
@@ -79,6 +95,36 @@ export default function ProspectingPage() {
       console.error('Failed to fetch companies:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const generateIdeas = async (company: Company) => {
+    setIdeasLoading(true);
+    try {
+      const res = await fetch(`/api/companies/${company.id}/generate-ideas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setIdeas(prev => ({
+          ...prev,
+          [company.id]: data.ideas || []
+        }));
+        setShowIdeas(prev => ({
+          ...prev,
+          [company.id]: true
+        }));
+      } else {
+        alert('Failed to generate ideas');
+      }
+    } catch (error) {
+      console.error('Error generating ideas:', error);
+      alert('Error generating partnership ideas');
+    } finally {
+      setIdeasLoading(false);
     }
   };
 
@@ -238,6 +284,54 @@ export default function ProspectingPage() {
                   <div>
                     <h4 className="text-sm font-semibold text-gray-900 mb-2">💼 CSR Focus</h4>
                     <p className="text-sm text-gray-700">{company.csrFocus}</p>
+                  </div>
+                )}
+
+                <div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!ideas[company.id]) {
+                        generateIdeas(company);
+                      } else {
+                        setShowIdeas(prev => ({
+                          ...prev,
+                          [company.id]: !prev[company.id]
+                        }));
+                      }
+                    }}
+                    disabled={ideasLoading}
+                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    {ideasLoading ? '✨ Generating ideas...' : (ideas[company.id]?.length ? `💡 Show Partnership Ideas (${ideas[company.id].length})` : '💡 Generate Partnership Ideas')}
+                  </button>
+                </div>
+
+                {showIdeas[company.id] && ideas[company.id]?.length > 0 && (
+                  <div className="space-y-3 border-t border-gray-200 pt-4">
+                    <h4 className="text-sm font-semibold text-gray-900">🎯 AI-Generated Partnership Ideas</h4>
+                    {ideas[company.id].map((idea, idx) => (
+                      <div key={idx} className="bg-purple-50 p-3 rounded-lg border border-purple-200 text-xs">
+                        <h5 className="font-semibold text-purple-900 mb-2">{idea.ideaName}</h5>
+                        <p className="text-purple-800 mb-2"><strong>Why aligned:</strong> {idea.whyAligned}</p>
+                        <div className="grid grid-cols-2 gap-2 text-purple-700 mb-2">
+                          <div><strong>Budget:</strong> {idea.estimatedBudget}</div>
+                          <div><strong>Students:</strong> {idea.studentImpactNumber}</div>
+                          <div><strong>Difficulty:</strong> {idea.difficulty}</div>
+                          <div><strong>Impact:</strong> {idea.studentImpactDescription}</div>
+                        </div>
+                        <p className="text-purple-700 mb-2"><strong>Pitch angle:</strong> "{idea.firstContactAngle}"</p>
+                        {idea.streams?.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {idea.streams.map(stream => (
+                              <span key={stream} className="bg-purple-200 text-purple-900 px-2 py-1 rounded text-xs">
+                                {stream}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
 
