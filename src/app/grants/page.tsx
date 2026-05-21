@@ -19,6 +19,7 @@ export default function OpportunitiesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
+  const [discoveringGrants, setDiscoveringGrants] = useState(false);
 
   useEffect(() => {
     fetchOpportunities();
@@ -46,6 +47,30 @@ export default function OpportunitiesPage() {
     }
   };
 
+  const discoverAndMatchGrants = async () => {
+    setDiscoveringGrants(true);
+    try {
+      const res = await fetch('/api/admin/daily-grants-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        alert(`✅ Discovered ${data.discovered} new grants!\n${data.topOpportunities} with fit score > 70 ready for submission`);
+        // Refresh list
+        fetchOpportunities();
+      } else {
+        alert('Failed to discover grants');
+      }
+    } catch (error) {
+      console.error('Error discovering grants:', error);
+      alert('Error discovering grants');
+    } finally {
+      setDiscoveringGrants(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       'not_contacted': 'bg-gray-100 text-gray-800',
@@ -69,9 +94,18 @@ export default function OpportunitiesPage() {
           <h1 className="text-3xl font-bold text-gray-900">Opportunities</h1>
           <p className="text-gray-600 mt-1">{opportunities.length} grants & partnerships</p>
         </div>
-        <Link href="/opportunities/new" className="btn-primary">
-          + New Opportunity
-        </Link>
+        <div className="flex space-x-3">
+          <button
+            onClick={discoverAndMatchGrants}
+            disabled={discoveringGrants}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 font-medium text-sm"
+          >
+            {discoveringGrants ? '🔄 Discovering...' : '🌍 Discover Grants'}
+          </button>
+          <Link href="/opportunities/new" className="btn-primary">
+            + New Opportunity
+          </Link>
+        </div>
       </div>
 
       <div className="flex space-x-4 mb-8 overflow-x-auto">
