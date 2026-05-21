@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Opportunity {
+  id                String    @id @default(cuid())
+  type              String    // "grant" or "partnership"
+  title             String
+  description       String
+  organization      String?
+  sector            String?   // Tech, Healthcare, Sustainability, etc.
+  stream            String?   // Future of Communication, Health, Intelligence, Sustainability
+  fundingAmount     Int?      // In dollars
+  applicationDeadline DateTime?
+  fitScore          Int       @default(0) // 0-100
+  roiEstimate       Float     @default(0) // Percentage or multiple
+  status            String    @default("not_contacted") // not_contacted, researching, prepared, applied, active_conversation, partnership
+  source            String    @default("manual") // public_db, ai_discovery, manual
+  url               String?
+  notes             String?
+  relatedPrograms   String?   // JSON array of program IDs
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  contacts Contact[]
+
+  @@index([status])
+  @@index([fitScore])
+  @@index([type])
+}
+
+model Contact {
+  id              String    @id @default(cuid())
+  opportunityId   String
+  opportunity     Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  contactName     String
+  organization    String?
+  email           String?
+  phone           String?
+  role            String?
+
+  contactDate     DateTime  @default(now())
+  contactMethod   String    // email, call, meeting
+  notes           String?
+
+  lastAction      String?
+  nextAction      String?
+  nextActionDate  DateTime?
+
+  relationshipStage String @default("lead") // lead, warm_lead, active, partnership
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([opportunityId])
+  @@index([relationshipStage])
+}
+
+model BtsProgram {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String
+  stream      String // Future of Communication, Sustainability, Health, Intelligence
+  yearLevels  String // "7-8", "9-10", "9-12", etc.
+  keywords    String // Comma-separated for matching
+
+  createdAt   DateTime @default(now())
+}
+
+model Company {
+  id          String @id @default(cuid())
+  name        String @unique
+  industry    String
+  sector      String
+  size        String // Small, Medium, Large, Enterprise
+  location    String
+  website     String?
+
+  fundingCapacity String // Low, Medium, High
+  csrFocus    String? // Innovation, Education, Sustainability, etc.
+  notes       String?
+
+  tier        Int    @default(4) // 1: Top 50 ASX, 2: ASX 51-150, 3: ASX 151-300, 4: Regional/SME
+  btsPrograms String? // JSON array of relevant BTS programs
+
+  contactName String? // Default contact
+  email       String?
+  phone       String?
+
+  isReal      Boolean @default(false) // true = real prospect, false = synthetic
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([industry])
+  @@index([sector])
+  @@index([tier])
+}
+
+model ProposalTemplate {
+  id          String @id @default(cuid())
+  name        String
+  description String
+  funderType  String // "government", "foundation", "corporate"
+  content     String // Template with placeholders
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
